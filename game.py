@@ -10,6 +10,7 @@ class Game:
         # récupère la fenêtre
         self.screen = screen
         
+        # initialise les classes Player et Ground venant respectivement des fichiers player et ground
         self.pl = player.Player(self.screen, W, H)
         self.gr = ground.Ground(self.screen, W, H)
         
@@ -22,7 +23,8 @@ class Game:
         self.background_menu = (200, 200, 200)
         self.background_game = (0, 0, 0)
         
-        # définis une liste des touches préssées (vide)
+        # définis une liste des touches préssées (vide pour le moment, mais qui se remplira quand le joueur appuiera sur une touche)
+        # cette méthode est utile simplement pour les touches que l'on appuie en continu
         self.pressed = {}
         
         # définit l'horloge du jeu afin de pouvoir gérer les fps
@@ -30,8 +32,10 @@ class Game:
         
     def main_loop(self):
         
+        # tant que la fenêtre est en marche
         while self.running:
             
+            # tant que le menu est en marche
             while self.menu:
                 
                 # récupère tous les évènements
@@ -51,7 +55,8 @@ class Game:
                 self.screen.fill(self.background_menu)
                 
                 pygame.display.flip()
-                
+            
+            # tant que le jeu est en marche
             while self.jeu:
                 
                 # récupère tous les évènements
@@ -78,6 +83,7 @@ class Game:
                             
                     if event.type == pygame.KEYUP:
                         
+                        # retire de la liste des touches pressées la touche que l'on vient de relever
                         self.pressed[event.key] = False
                 
                 # si le joueur appuies sur la flèche de gauche, utilise la fonction du joueur 'bouger à gauche'
