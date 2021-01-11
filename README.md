@@ -1,3 +1,4 @@
-# Platformer-NSI-2
+# Ce git hub est le git hub du plaisir.
 
-# Bonjour j'aime bien manger des calculs
+# Pour mettre à jour un fichier que vous avez modifier, cliquez sur 'add file' puis 'upload file', faites glisser le fichier
+# github va mettre a jour tout seul.
