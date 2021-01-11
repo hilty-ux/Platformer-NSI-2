@@ -5,6 +5,7 @@ class Player(pygame.sprite.Sprite):
     
     def __init__(self, screen, W, H):
         
+        # initialisation de la super classe pygame.sprite.Sprite qui va nous offrir de plus grandes possibilités.
         super().__init__()
         
         # initialisation de l'écran (mis en argument)
@@ -26,6 +27,8 @@ class Player(pygame.sprite.Sprite):
         
     def update(self):
         
+        # dessine un rectangle sur le self.screen, de la couleur self.color, 
+        # et de coordonnée et de taille du rectangle self.rect
         pygame.draw.rect(self.screen, self.color, self.rect)
         
     def move_right(self):
@@ -43,16 +46,25 @@ class Player(pygame.sprite.Sprite):
             self.rect.x -= self.vitesse
         
     def collision(self, direction):
-        
+        """Cette fonction fonctionne sur un principe simple : si on détecte une collision dans la direction
+        que l'on veut, renvoie vrai, sinon renvoie faux. On pourra ainsi vérifier avant le mouvement si on
+        détecte une collision ou non, si oui le mouvement ne sera pas autorisé."""
+       
+        # si la direction à vérifier est la droite
         if direction == "right":
             
+            # comme la coordonnée x du joueur est en haut à droite de son rectangle, pour vérifier si on
+            # détecte une collision à droite, il faut ajouter à sa coordonnée x sa largeur, que l'on
+            # matérialise avec la variable self.playerW (pour player width ou largeur joueur en français)
             if self.rect.x + self.playerW > self.W:
                 return True
             
             return False
         
+        # ou si la direction à vérifier est la gauche
         elif direction == "left":
             
+            # si le x du joueur est inférieur à 0
             if self.rect.x < 0:
                 return True
             
