@@ -9,6 +9,7 @@ class Ground(pygame.sprite.Sprite):
         
         super().__init__() # initialise la super classe
         
+        # récupère les variable qui ont été injectées lors de l'initialisation (les arguments de la fonction __init__)
         self.screen = screen
         self.W = W
         self.H = H
