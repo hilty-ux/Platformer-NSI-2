@@ -9,7 +9,6 @@ class Ground(pygame.sprite.Sprite):
         
         super().__init__() # initialise la super classe
         
-        # récupère les variable qui ont été injectées lors de l'initialisation (les arguments de la fonction __init__)
         self.screen = screen
         self.W = W
         self.H = H
@@ -22,4 +21,18 @@ class Ground(pygame.sprite.Sprite):
         
         # déssine un rectangle sur la fenetre : 'self.screen', dans la couleur: 'self.color', dans le rectangle : 'self.rect'
         pygame.draw.rect(self.screen, self.color, self.rect)
+        
+
+class Platform(pygame.sprite.Sprite):
+    
+    def __init__(self, x, y):
+        
+        super().__init__()
+        
+        self.image = pygame.Surface((200, 50))
+        self.image.fill((250, 250, 250))
+        self.rect = self.image.get_rect()
+        
+        self.rect.x, self.rect.y = x, y
+        
     

@@ -1,6 +1,7 @@
-import pygame
+import pygame, random
 import player
 import ground
+
 
 
 class Game:
@@ -10,7 +11,6 @@ class Game:
         # récupère la fenêtre
         self.screen = screen
         
-        # initialise les classes Player et Ground venant respectivement des fichiers player et ground
         self.pl = player.Player(self.screen, W, H)
         self.gr = ground.Ground(self.screen, W, H)
         
@@ -21,21 +21,27 @@ class Game:
         
         # initialise les variables de couleur
         self.background_menu = (200, 200, 200)
-        self.background_game = (0, 0, 0)
+        self.background_game = (0, 100, 100)
         
-        # définis une liste des touches préssées (vide pour le moment, mais qui se remplira quand le joueur appuiera sur une touche)
-        # cette méthode est utile simplement pour les touches que l'on appuie en continu
+        # définis une liste des touches préssées (vide)
         self.pressed = {}
         
         # définit l'horloge du jeu afin de pouvoir gérer les fps
         self.clock = pygame.time.Clock()
         
+        self.W = W
+        self.H = H
+        
+        # crée un groupe de sprite qui contiendra toutes les plateformes
+        self.platform_group = pygame.sprite.Group()
+        
+    def add_platform(self):
+        self.platform_group.add(ground.Platform(random.randint(0, self.W - 200), random.randint(200, 800)))
+        
     def main_loop(self):
         
-        # tant que la fenêtre est en marche
         while self.running:
             
-            # tant que le menu est en marche
             while self.menu:
                 
                 # récupère tous les évènements
@@ -55,8 +61,7 @@ class Game:
                 self.screen.fill(self.background_menu)
                 
                 pygame.display.flip()
-            
-            # tant que le jeu est en marche
+                
             while self.jeu:
                 
                 # récupère tous les évènements
@@ -79,11 +84,12 @@ class Game:
                             # initialise la boucle menu et ferme la boucle jeu
                             self.menu = True
                             self.jeu = False
-                            
+                        
+                        if event.key == pygame.K_t:
+                            self.add_platform()
                             
                     if event.type == pygame.KEYUP:
                         
-                        # retire de la liste des touches pressées la touche que l'on vient de relever
                         self.pressed[event.key] = False
                 
                 # si le joueur appuies sur la flèche de gauche, utilise la fonction du joueur 'bouger à gauche'
@@ -100,6 +106,9 @@ class Game:
                 self.gr.update()
                 # met à jour le joueur
                 self.pl.update()
+                
+                # draw the platforms
+                self.platform_group.draw(self.screen)
                 
                 # met à jour l'écran
                 pygame.display.flip()
