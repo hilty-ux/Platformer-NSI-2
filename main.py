@@ -13,6 +13,3 @@ pygame.init()
 game.main_loop()
 
 pygame.quit()
-            
-            
-            

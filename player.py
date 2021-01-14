@@ -11,17 +11,25 @@ class Player(pygame.sprite.Sprite):
         self.screen = screen
         self.W = W
         self.H = H
-        
-        # je définis le rectangle du joueur : x: 100, y: 100 et largeur: 50, hauteur : 100
-        self.rect = pygame.Rect((100, self.H - 100 - 100), (50, 100))
+
+        # initialisation couleurs
+        self.color = (255, 0, 0)
+
+        # largeur et hauteur du joueur
         self.playerW = 50
         self.playerH = 100
+
+        # je définis la surface du joueur (c'est comme une image)
+        self.image = pygame.Surface((self.playerW, self.playerH))
+        # je remplis cette surface de la couleur choisie (pas utile si image)
+        self.image.fill(self.color)
+        # récupère le rectangle en fonction de la surface
+        self.rect = self.image.get_rect()
+        # replace le joueur à une position de base
+        self.rect.x, self.rect.y = 100, self.H - 210
         
         # initialisation de la variable vitesse
         self.vitesse = 20
-        
-        # initialisation couleurs
-        self.color = (255, 0, 0)
         
         
     def update(self):
@@ -41,6 +49,10 @@ class Player(pygame.sprite.Sprite):
         if not self.collision("left"):
             # enlève la valeur de la vitesse au coordonnée x du joueur
             self.rect.x -= self.vitesse
+            
+    def move_up(self):
+        
+        self.rect.y -= 50
         
     def collision(self, direction):
         
