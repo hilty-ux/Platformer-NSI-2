@@ -39,14 +39,18 @@ class Platform(pygame.sprite.Sprite):
 
         self.rect.x, self.rect.y = x, y
 
-    def update(self):
+    def update(self, move, anim):
 
-        if self.index_animation == 0:
-            self.index_animation += 1
-            self.image = self.sprites[self.index_animation]
-        else:
-            self.index_animation -= 1
-            self.image = self.sprites[self.index_animation]
+        if anim:
+            if self.index_animation == 0:
+                self.index_animation += 1
+                self.image = self.sprites[self.index_animation]
+            else:
+                self.index_animation -= 1
+                self.image = self.sprites[self.index_animation]
+
+        if move:
+            self.rect.y += 10
 
 
 class Flame(pygame.sprite.Sprite):

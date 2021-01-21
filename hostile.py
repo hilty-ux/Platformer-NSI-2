@@ -7,7 +7,7 @@ class Comet(pygame.sprite.Sprite):
 
     def __init__(self, screen, W, H, player_pos_x, player_pos_y):
         super().__init__()
-
+        
         self.W = W
         self.H = H
 
@@ -128,17 +128,19 @@ class SpaceShip(pygame.sprite.Sprite):
 
         if life_switch:
             self.life -= 25
-            return self.life
+            return self.life, None
 
         if self.life <= 0:
+            last_x, last_y = self.rect.x, self.rect.y
             self.kill()
+            return "dead", last_x, last_y
 
         self.velocity = move
 
         # si le vaisseau a apparu dans le quart n°1, effectue cette routine de mouvement
         if self.quart == 1:
             if self.movement == "up":
-                if self.rect.y - self.velocity > 0:
+                if self.rect.y - self.velocity > 100:
                     self.rect.y -= self.velocity
                 else: self.movement = "down"
 
@@ -164,7 +166,7 @@ class SpaceShip(pygame.sprite.Sprite):
         # si le vaisseau a apparu dans le quart n°3, effectue cette routine de mouvement
         elif self.quart == 3:
             if self.movement == "up":
-                if self.rect.y - self.velocity > 0:
+                if self.rect.y - self.velocity > 100:
                     self.rect.y -= self.velocity
                 else:
                     self.movement = "down"
@@ -202,6 +204,8 @@ class SpaceShip(pygame.sprite.Sprite):
             (self.image.get_width() / 100) * self.life,
             5
         ])
+
+        return "successfully updated", None
 
     def hit(self):
 
