@@ -15,8 +15,8 @@ class Player(pygame.sprite.Sprite):
         self.H = H
 
         # largeur et hauteur du joueur
-        self.playerW = 25
-        self.playerH = 50
+        self.playerW = 50
+        self.playerH = 80
 
         # je définis la surface du joueur (c'est comme une image)
         self.image = pygame.image.load("ressource/Player/basic-50.png")
@@ -27,6 +27,12 @@ class Player(pygame.sprite.Sprite):
         
         # initialisation de la variable vitesse
         self.vitesse = 20
+
+        self.sprite_basic = pygame.image.load("ressource/Player/basic-50.png")
+        self.sprites_jump = [pygame.image.load("ressource/Player/jump/frame1-50.png"),
+                             pygame.image.load("ressource/Player/jump/frame2-50.png")]
+
+        self.index_animation_jump = 0
 
     def update(self):
         self.screen.blit(self.image, self.rect)
@@ -69,6 +75,22 @@ class Player(pygame.sprite.Sprite):
                 return True
             
             return False
+
+    def reset_anim(self):
+
+        self.image = self.sprite_basic
+
+    def anim_jump(self):
+
+        if self.index_animation_jump == 0:
+            self.index_animation_jump = 1
+        else:
+            self.index_animation_jump = 0
+
+        self.image = self.sprites_jump[self.index_animation_jump]
+
+
+
             
         
         

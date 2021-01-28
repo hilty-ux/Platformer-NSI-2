@@ -64,61 +64,60 @@ class ScoreBoard:
 
     def score_board(self):
 
-        self.screen.fill((255, 255, 255))
-        police = pygame.font.Font('ressource/Police/PIXELITE.ttf', 75)
-        text = police.render("Score Board", True, (0, 0, 0))
+        police = pygame.font.Font('ressource/Police/PIXELITE.ttf', 85)
+        text = police.render("Score Board", True, (255, 255, 255))
         text_rect = text.get_rect()
-        text_rect.center = 675 - 302, 150
+        text_rect.center = 400, 150
         self.screen.blit(text, text_rect)
 
         # dessine le rectangle principal contenant les valeurs du scoreboard
-        pygame.draw.line(self.screen, (0, 0, 0), (100, 200), (self.W // 2 - 260, 200), width=10)
-        pygame.draw.line(self.screen, (0, 0, 0), (100, 196), (100, self.H - 105), width=10)
-        pygame.draw.line(self.screen, (0, 0, 0), (100, self.H - 110), (self.W // 2 - 260, self.H - 110), width=10)
-        pygame.draw.line(self.screen, (0, 0, 0), (self.W // 2 - 260, 196), (self.W // 2 - 260, self.H - 105), width=10)
+        pygame.draw.line(self.screen, (255, 255, 255), (100, 200), (self.W // 2 - 260, 200), 10)
+        pygame.draw.line(self.screen, (255, 255, 255), (100, 196), (100, self.H - 180), 10)
+        pygame.draw.line(self.screen, (255, 255, 255), (100, self.H - 185), (self.W // 2 - 260, self.H - 185), 10)
+        pygame.draw.line(self.screen, (255, 255, 255), (self.W // 2 - 260, 196), (self.W // 2 - 260, self.H - 180), 10)
 
         # dessine toutes les lignes horizontales
-        pygame.draw.line(self.screen, (0, 0, 0), (100, 275), (self.W // 2 - 260, 275), width=10)
-        pygame.draw.line(self.screen, (0, 0, 0), (100, 362), (self.W // 2 - 260, 362), width=3)
-        pygame.draw.line(self.screen, (0, 0, 0), (100, 449), (self.W // 2 - 260, 449), width=3)
-        pygame.draw.line(self.screen, (0, 0, 0), (100, 536), (self.W // 2 - 260, 536), width=3)
-        pygame.draw.line(self.screen, (0, 0, 0), (100, 623), (self.W // 2 - 260, 623), width=3)
-        pygame.draw.line(self.screen, (0, 0, 0), (100, 710), (self.W // 2 - 260, 710), width=3)
-        pygame.draw.line(self.screen, (0, 0, 0), (100, 797), (self.W // 2 - 260, 797), width=3)
+        pygame.draw.line(self.screen, (255, 255, 255), (100, 275), (self.W // 2 - 260, 275), 10)
+        pygame.draw.line(self.screen, (255, 255, 255), (100, 362), (self.W // 2 - 260, 362), 3)
+        pygame.draw.line(self.screen, (255, 255, 255), (100, 449), (self.W // 2 - 260, 449), 3)
+        pygame.draw.line(self.screen, (255, 255, 255), (100, 536), (self.W // 2 - 260, 536), 3)
+        pygame.draw.line(self.screen, (255, 255, 255), (100, 623), (self.W // 2 - 260, 623), 3)
+        pygame.draw.line(self.screen, (255, 255, 255), (100, 710), (self.W // 2 - 260, 710), 3)
+        pygame.draw.line(self.screen, (255, 255, 255), (100, 797), (self.W // 2 - 260, 797), 3)
 
         # dessine toutes les lignes verticales
-        pygame.draw.line(self.screen, (0, 0, 0), ((self.W // 2 - 260 + 100) // 2, 200),
-                         ((self.W // 2 - 260 + 100) // 2, self.H - 105), width=10)
-        pygame.draw.line(self.screen, (0, 0, 0), (((self.W // 2 - 260 + 100) // 4) * 2.75, 200),
-                         (((self.W // 2 - 260 + 100) // 4) * 2.75, self.H - 105), width=3)
+        pygame.draw.line(self.screen, (255, 255, 255), ((self.W // 2 - 260 + 100) // 2, 200),
+                         ((self.W // 2 - 260 + 100) // 2, self.H - 185), 10)
+        pygame.draw.line(self.screen, (255, 255, 255), (((self.W // 2 - 260 + 100) // 4) * 2.75, 200),
+                         (((self.W // 2 - 260 + 100) // 4) * 2.75, self.H - 185), 3)
 
         police = pygame.font.Font('ressource/Police/PIXELITE.ttf', 25)
-        text = police.render("Highest Score", True, (0, 0, 0))
+        text = police.render("Highest Score", True, (255, 255, 255))
         text_rect = text.get_rect()
-        text_rect.center = 235, 362-275 + 155
+        text_rect.center = 250, 362 - 275 + 155
         self.screen.blit(text, text_rect)
 
         police = pygame.font.Font('ressource/Police/PIXELITE.ttf', 40)
         if self.high_score < 1000:
-            text = police.render(str(self.high_score), True, (0, 0, 0))
+            text = police.render(str(self.high_score), True, (255, 255, 255))
         else:
-            text = police.render(f"{round(self.high_score / 1000, 1)}k", True, (0, 0, 0))
+            text = police.render(f"{round(self.high_score / 1000, 1)}k", True, (255, 255, 255))
         text_rect = text.get_rect()
-        text_rect.center = 445, 362 - 275 + 155
+        text_rect.center = 485, 362 - 275 + 155
         self.screen.blit(text, text_rect)
 
         high_score_time_min = self.high_score_time // 60000
         high_score_time_sec = round((self.high_score_time - (high_score_time_min * 60000)) / 1000, 2)
 
         police = pygame.font.Font('ressource/Police/PIXELITE.ttf', 25)
-        text = police.render(f"{high_score_time_min} : {high_score_time_sec}", True, (0, 0, 0))
+        text = police.render(f"{high_score_time_min} : {high_score_time_sec}", True, (255, 255, 255))
         text_rect = text.get_rect()
-        text_rect.center = 580, 362 - 275 + 155
+        text_rect.center = 625, 362 - 275 + 155
         self.screen.blit(text, text_rect)
 
         for i in range(7):
             police = pygame.font.Font('ressource/Police/PIXELITE.ttf', 20)
-            text = police.render(f"Last game {i + 1}", True, (0, 0, 0))
+            text = police.render(f"Last game {i + 1}", True, (255, 255, 255))
             text_rect = text.get_rect()
             text_rect.center = 235, 362 - 275 + 242 + (87 * i)
             self.screen.blit(text, text_rect)
@@ -126,11 +125,11 @@ class ScoreBoard:
         for i in range(7):
             police = pygame.font.Font('ressource/Police/PIXELITE.ttf', 40)
             if self.precedent_scores[i] < 1000:
-                text = police.render(str(self.precedent_scores[i]), True, (0, 0, 0))
+                text = police.render(str(self.precedent_scores[i]), True, (255, 255, 255))
             else:
-                text = police.render(f"{round(self.precedent_scores[i] / 1000, 2)}k", True, (0, 0, 0))
+                text = police.render(f"{round(self.precedent_scores[i] / 1000, 2)}k", True, (255, 255, 255))
             text_rect = text.get_rect()
-            text_rect.center = 445, 362 - 275 + 242 + (87 * i)
+            text_rect.center = 485, 362 - 275 + 242 + (87 * i)
             self.screen.blit(text, text_rect)
 
         for i in range(7):
@@ -139,9 +138,9 @@ class ScoreBoard:
 
             police = pygame.font.Font('ressource/Police/PIXELITE.ttf', 25)
             if time_sec < 10:
-                text = police.render(f"{time_min} : 0{time_sec}", True, (0, 0, 0))
+                text = police.render(f"{time_min} : 0{time_sec}", True, (255, 255, 255))
             else:
-                text = police.render(f"{time_min} : {time_sec}", True, (0, 0, 0))
+                text = police.render(f"{time_min} : {time_sec}", True, (255, 255, 255))
             text_rect = text.get_rect()
-            text_rect.center = 570, 362 - 275 + 242 + (87 * i)
+            text_rect.center = 625, 362 - 275 + 242 + (87 * i)
             self.screen.blit(text, text_rect)

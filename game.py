@@ -8,11 +8,15 @@ import mouse
 import player
 import border_top
 import scoreboard
+import menu_buttons
 
 
 class Game:
 
     def __init__(self, screen, W, H):
+        
+        self.background_menu = pygame.image.load("ressource/Background/background_menu.jpg")
+        self.background_game = pygame.image.load("ressource/Background/background_game.jpg")
 
         # récupère la fenêtre
         self.screen = screen
@@ -30,10 +34,7 @@ class Game:
         self.phase = ["comet", "space ships", "laser"]
         self.state = 0
         self.beginning_phase = pygame.time.get_ticks()
-
-        # initialise les variables de couleur
-        self.background_menu = (200, 200, 200)
-        self.background_game = (0, 100, 100)
+        self.present_round = 1
 
         # définis une liste des touches préssées (vide)
         self.pressed = {}
@@ -84,11 +85,14 @@ class Game:
         self.tb = border_top.TopBar(self.screen, self.W, self.H, self.life)
         # crée une instance de la classe ScoreBoard qui sera la pour afficher le menu des meilleurs scores
         self.sb = scoreboard.ScoreBoard(self.screen, self.W, self.H)
+        # crée une instance de la classe ButtonMenu qui sera la pour afficher les boutons du menu
+        self.but = menu_buttons.ButtonMenu(self.screen)
 
         # création de deux vecteurs : un qui représentera la gravité et l'autre la resistance du support.
         # lorsque une detection avec le sol sera detecté, les deux vecteurs s'annuleront.
         self.gravity = (0, 10)
         self.resistance = (0, 0)
+        self.in_the_air = True
 
         self.jump_number = 0
 
@@ -109,8 +113,12 @@ class Game:
         self.begin_updating_time = pygame.time.get_ticks()
         self.platform_spawning_delay = pygame.time.get_ticks()
         self.score_pop_up_delay = pygame.time.get_ticks()
+        self.state_delay = pygame.time.get_ticks()
+        self.anim_char_delay = pygame.time.get_ticks()
         self.jumping = False
         self.updating_platforms = False
+        
+        self.click = False
 
     def pin_up_life(self):
         police = pygame.font.Font('ressource/Police/PIXELITE.ttf', 25)
@@ -121,7 +129,15 @@ class Game:
         self.screen.blit(text, text_surf)
 
     def add_comet(self):
-        if random.randint(1, 30) == 1:
+        if self.present_round == 1:
+            difficulty = 50
+        elif self.present_round == 2:
+            difficulty = 25
+        elif self.present_round == 3:
+            difficulty = 15
+        else:
+            difficulty = 10
+        if random.randint(1, difficulty) == 1 and len(self.comet_group) < 10:
             self.comet_group.add(hostile.Comet(self.screen, self.W, self.H, self.pl.rect.x, self.pl.rect.y))
 
     def gravity_player(self):
@@ -132,6 +148,116 @@ class Game:
             self.add_red_bullet(x - 10, y + 24, 0, random.randint(y - 100, y + 100))
         else:
             self.add_red_bullet(x + sprite.image.get_width() + 10, y + 24, self.W, random.randint(y - 100, y + 100))
+
+    def space_ship_update(self):
+        if self.present_round == 1:
+            difficulty = 110
+            difficulty2 = 50
+        elif self.present_round == 2:
+            difficulty = 75
+            difficulty2 = 25
+        elif self.present_round == 3:
+            difficulty = 50
+            difficulty2 = 15
+        else:
+            difficulty = 20
+            difficulty2 = 10
+
+        if random.randint(1, difficulty) == 1 and len(self.spaceship_group) < 6:
+            print("ship added")
+            self.add_spaceship(self.pl.rect.x, self.pl.rect.y)
+        if random.randint(1, difficulty2) == 1:
+            for sprite in self.spaceship_group:
+                if sprite.rect.x > self.W // 2:
+                    self.spaceship_shooting(sprite.rect.x, sprite.rect.y, "right", sprite)
+                else:
+                    self.spaceship_shooting(sprite.rect.x, sprite.rect.y, "left", sprite)
+
+        for sprite in self.spaceship_group:
+            if random.randint(1, 5) == 1:
+                move = 6
+            else:
+                move = 3
+            sprite.update(life_switch=False, move=move)
+
+            # si un sprite renvoies qu'il est mort, ajoute dans le dictionnaire des sprites mort, en argument
+            # 1: sa position en x, en argument 2: sa position en y, et en argument 3: la seconde à laquelle
+            # il est mort pour afficher pendant 0.5 sec un message de score
+            if sprite.update(life_switch=False, move=0)[0] == "dead":
+                self.score_pop_up_list[sprite] = (sprite.update(life_switch=False, move=0)[1],
+                                                  sprite.update(life_switch=False, move=0)[2],
+                                                  pygame.time.get_ticks())
+                try:
+                    self.spaceship_group.remove(sprite)
+                except Exception as e:
+                    print(e)
+                self.score += 10
+
+    def all_collisions(self):
+        """Detectes toutes les collisions sur tous les sprites"""
+        # Collision entre les balles du joueur et les vaisseaux ---------------------------------------------- #
+        for bullet_sprite in self.bullet_group_player:
+            for space_ship in self.spaceship_group:
+                get_hits = bullet_sprite.rect.colliderect(space_ship.rect)
+                if get_hits:
+                    self.bullet_group_player.remove(bullet_sprite)
+                    space_ship.update(life_switch=True, move=6)
+
+        # Collision entre les balles hostiles et le joueur --------------------------------------------------- #
+        for sprite in self.bullet_group_hostile:
+            get_hits = self.pl.rect.colliderect(sprite.rect)
+            if get_hits:
+                self.bullet_group_hostile.remove(sprite)
+                self.life -= 2
+
+        # Collision entre les comètes et le joueur ----------------------------------------------------------- #
+        for sprite in self.comet_group:
+            get_hits = self.pl.rect.colliderect(sprite.rect)
+            if get_hits:
+                self.life -= 1
+                self.comet_group.remove(sprite)
+
+        # Collision avec les plateformes --------------------------------------------------------------------- #
+        if self.state != 2:
+            for sprite in self.platform_group:
+                get_hits = pygame.sprite.spritecollideany(self.pl, self.platform_group)
+                if get_hits:
+                    self.resistance = (0, -10)
+                    self.jump_number = 0
+                    self.in_the_air = False
+                    break
+                else:
+                    self.resistance = (0, 0)
+                    self.in_the_air = True
+
+        # Collision entre les balles et les comètes ---------------------------------------------------------- #
+        for sprite in self.bullet_group_player:
+            for sprite2 in self.comet_group:
+                get_hits = sprite.rect.colliderect(sprite2.rect)
+                if get_hits:
+                    self.score_pop_up_list[sprite2] = (sprite2.rect.centerx,
+                                                       sprite2.rect.centery,
+                                                       pygame.time.get_ticks())
+                    self.score += 10 * self.present_round
+                    self.bullet_group_player.remove(sprite)
+                    self.comet_group.remove(sprite2)
+
+    def pop_up_list_update(self):
+
+        if self.actual_time - self.score_pop_up_delay > 750:
+            self.score_pop_up_list = {}
+            self.score_pop_up_delay = self.actual_time
+
+        for score in self.score_pop_up_list:
+            self.screen.blit(
+                self.print_out_text(font="ressource/Police/PIXELITE.ttf", size_font=15,
+                                    text=f"+ {10*self.present_round}",
+                                    color=(255, 255, 255), pos_x=self.score_pop_up_list[score][0],
+                                    pos_y=self.score_pop_up_list[score][1])[0],
+                self.print_out_text(font="ressource/Police/PIXELITE.ttf", size_font=15,
+                                    text=f"+ {10*self.present_round}", color=(255, 255, 255),
+                                    pos_x=self.score_pop_up_list[score][0] + 10,
+                                    pos_y=self.score_pop_up_list[score][1])[1])
 
     # Platforms Patterns ------------------------------------ #
 
@@ -166,10 +292,15 @@ class Game:
 
     def main_loop(self):
 
+        print("Ouverture du client.")
+
         while self.running:
 
             while self.menu:
 
+                pygame.mouse.set_visible(True)
+
+                self.screen.blit(self.background_menu, (0, 0))
                 self.sb.update()
 
                 # récupère tous les évènements
@@ -181,9 +312,9 @@ class Game:
                         self.running = False
                         self.menu = False
 
-                    if event.type == pygame.KEYDOWN:
+                    if event.type == pygame.MOUSEBUTTONDOWN:
 
-                        if event.key == pygame.K_p:
+                        if self.but.white_button_rect.collidepoint(event.pos):
                             self.menu = False
                             self.jeu = True
 
@@ -215,14 +346,23 @@ class Game:
                             self.beginning_phase = pygame.time.get_ticks()
 
                             # ici, en fonction du niveau qui sera cliqué, le pattern changera
-                            self.pattern_2()
+                            if random.randint(0, 1) == 0:
+                                self.pattern_2()
+                            else:
+                                self.pattern_1()
+
+                        elif self.but.white_button_exit_rect.collidepoint(event.pos):
+
+                            print("Fermeture du client.")
+                            self.menu = False
+                            self.running = False
 
                 self.sb.score_board()
+                self.but.print_out()
 
                 pygame.display.flip()
 
             while self.jeu:
-                print(self.state)
 
                 # récupère tous les évènements
                 for event in pygame.event.get():
@@ -251,6 +391,13 @@ class Game:
 
                         # si la touche préssée est la touche ESCAPE
                         if event.key == pygame.K_ESCAPE:
+                            # enregistre toutes les valeurs liées à la parties qui vient d'être jouée
+                            if self.score > self.sb.high_score:
+                                self.sb.add_high_score(self.score, self.actual_time)
+                            self.jeu = False
+                            self.menu = True
+
+                            self.sb.add_precedent_score(self.score, self.actual_time)
                             # initialise la boucle menu et ferme la boucle jeu
                             self.menu = True
                             self.jeu = False
@@ -267,7 +414,7 @@ class Game:
                     self.pl.move_right()
 
                 # colore l'écran dans la couleur définit plus haut
-                self.screen.fill(self.background_game)
+                self.screen.blit(self.background_game, (0, 0))
                 # met à jour le joueur
                 self.pl.update()
 
@@ -292,122 +439,23 @@ class Game:
                 # dessine les vaisseaux
                 self.spaceship_group.draw(self.screen)
                 if self.phase[self.state] == "space ships":
-                    if random.randint(1, 120) == 1:
-                        print("ship added")
-                        self.add_spaceship(self.pl.rect.x, self.pl.rect.y)
-                    if random.randint(1, 25) == 1:
-                        for sprite in self.spaceship_group:
-                            if sprite.rect.x > self.W // 2:
-                                self.spaceship_shooting(sprite.rect.x, sprite.rect.y, "right", sprite)
-                            else:
-                                self.spaceship_shooting(sprite.rect.x, sprite.rect.y, "left", sprite)
+                    self.space_ship_update()
 
-                for sprite in self.spaceship_group:
-                    if random.randint(1, 5) == 1:
-                        move = 6
-                    else:
-                        move = 3
-                    sprite.update(life_switch=False, move=move)
-
-                    # si un sprite renvoies qu'il est mort, ajoute dans le dictionnaire des sprites mort, en argument
-                    # 1: sa position en x, en argument 2: sa position en y, et en argument 3: la seconde à laquelle
-                    # il est mort pour afficher pendant 0.5 sec un message de score
-                    if sprite.update(life_switch=False, move=0)[0] == "dead":
-                        self.score_pop_up_list[sprite] = (sprite.update(life_switch=False, move=0)[1],
-                                                          sprite.update(life_switch=False, move=0)[2],
-                                                          pygame.time.get_ticks())
-                        try:
-                            self.spaceship_group.remove(sprite)
-                        except Exception as e:
-                            print(e)
-                        self.score += 10
-
-                # ici on essaies d'attrapper les erreurs avant qu'elles aient lieu et fasse crasher le programme,
-                # ainsi, meme s'il y a erreur, cela l'affichera simplement dans la console au lieu de fermer le jeu
-
-                if self.actual_time - self.score_pop_up_delay > 750:
-                    self.score_pop_up_list = {}
-                    self.score_pop_up_delay = self.actual_time
-
-                for score in self.score_pop_up_list:
-
-                    self.screen.blit(
-                        self.print_out_text(font="ressource/Police/PIXELITE.ttf", size_font=15, text="+ 10",
-                                            color=(0, 0, 0), pos_x=self.score_pop_up_list[score][0],
-                                            pos_y=self.score_pop_up_list[score][1])[0],
-                        self.print_out_text(font="ressource/Police/PIXELITE.ttf", size_font=15,
-                                            text="+ 10", color=(0, 0, 0),
-                                            pos_x=self.score_pop_up_list[score][0] + 10,
-                                            pos_y=self.score_pop_up_list[score][1])[1])
-
-                # dessine toutes les flammes
-                # self.flames_group.draw(self.screen)
-                # if self.actual_time - self.begin_time_frame_flames > 250:
-                #    self.flames_group.update()
-                #    self.begin_time_frame_flames = pygame.time.get_ticks()
-
-                # Collision entre les balles et les comètes ---------------------------------------------------------- #
-                for sprite in self.bullet_group_player:
-                    for sprite2 in self.comet_group:
-                        get_hits = sprite.rect.colliderect(sprite2.rect)
-                        if get_hits:
-                            self.score_pop_up_list[sprite2] = (sprite2.rect.centerx,
-                                                               sprite2.rect.centery,
-                                                               pygame.time.get_ticks())
-                            self.score += 10
-                            self.bullet_group_player.remove(sprite)
-                            self.comet_group.remove(sprite2)
+                self.pop_up_list_update()
 
                 # dessine les plateformes
                 self.platform_group.draw(self.screen)
                 # toutes les demi secondes, change la frame des plateformes
                 if self.actual_time - self.begin_time_frame_platform > 500:
-                    self.platform_group.update(move=False, anim=True)
+                    self.platform_group.update(False, True)
                     self.begin_time_frame_platform = pygame.time.get_ticks()
-
-                # Collision entre les balles du joueur et les vaisseaux ---------------------------------------------- #
-                for bullet_sprite in self.bullet_group_player:
-                    for space_ship in self.spaceship_group:
-                        get_hits = bullet_sprite.rect.colliderect(space_ship.rect)
-                        if get_hits:
-                            self.bullet_group_player.remove(bullet_sprite)
-                            space_ship.update(life_switch=True, move=6)
-
-                # Collision avec les plateformes --------------------------------------------------------------------- #
-                if self.state != 2:
-                    for sprite in self.platform_group:
-                        get_hits = pygame.sprite.spritecollideany(self.pl, self.platform_group)
-                        if get_hits:
-                            self.resistance = (0, -10)
-                            self.jump_number = 0
-                            break
-                        else:
-                            self.resistance = (0, 0)
-
-                for sprite in self.bullet_group_hostile:
-                    get_hits = pygame.sprite.spritecollideany(self.pl, self.bullet_group_hostile)
-                    if get_hits:
-                        self.bullet_group_hostile.remove(sprite)
-                        self.life -= 2
-
-                for sprite in self.comet_group:
-                    get_hits = pygame.sprite.spritecollideany(self.pl, self.comet_group)
-                    if get_hits:
-                        self.life -= 1
-                        self.comet_group.remove(sprite)
-
-                # ces lignes représentent le milieu, le quart et les trois quarts de l'écran, pour vérifier si les
-                # plateformes sont bien alignées
-                """pygame.draw.line(self.screen, (0, 0, 0), (self.W // 2, 0), (self.W // 2, self.H))
-                pygame.draw.line(self.screen, (0, 0, 0), (self.W // 4, 0), (self.W // 4, self.H))
-                pygame.draw.line(self.screen, (0, 0, 0), (self.W // 2 + (self.W // 4), 0), (self.W // 2 + (self.W // 4), self.H))"""
 
                 if self.pl.rect.y > self.H:
                     self.life -= 50
                     self.pl.rect.x, self.pl.rect.y = self.W // 2, self.H // 2
 
                 if self.state == 2:
-                    if self.actual_time - self.platform_spawning_delay > 200:
+                    if self.actual_time - self.platform_spawning_delay > 100:
                         choice = random.randint(1, 5)
                         if choice >= 3:
                             self.add_platform_random_1()
@@ -424,15 +472,15 @@ class Game:
                             self.begin_updating_time = pygame.time.get_ticks()
                             self.begin_jump_time = pygame.time.get_ticks()
 
-                    if self.actual_time - self.begin_updating_time < 200:
+                    if self.actual_time - self.begin_updating_time < 100:
                         self.updating_platforms = True
                     else:
                         self.updating_platforms = False
 
                     if self.updating_platforms:
-                        self.platform_group.update(move=True, anim=False)
+                        self.platform_group.update(True, False)
 
-                    if self.actual_time - self.begin_jump_time < 500:
+                    if self.actual_time - self.begin_jump_time < 250:
                         self.jumping = True
                     else:
                         self.jumping = False
@@ -440,8 +488,10 @@ class Game:
                     if self.jumping:
                         self.pl.move_up()
                         self.resistance = (0, -10)
+                        self.in_the_air = True
                     else:
                         self.resistance = (0, 0)
+                        self.in_the_air = False
 
                     self.add_comet()
 
@@ -449,13 +499,13 @@ class Game:
                 # Game phase ----------------------------------------------------------------------------------------- #
 
                 # passage à la phase 2 du jeu
-                if self.actual_time - self.beginning_phase > 30000 and self.state == 0:
+                if self.actual_time - self.beginning_phase > 20000 and self.state == 0:
                     self.state += 1
                     self.beginning_phase = self.actual_time
                     self.add_spaceship(self.pl.rect.x, self.pl.rect.y)
 
                 # passage à la phase 3 du jeu
-                if self.actual_time - self.beginning_phase > 30000 and self.state == 1:
+                if self.actual_time - self.beginning_phase > 20000 and self.state == 1:
                     self.state = 2
                     self.beginning_phase = self.actual_time
 
@@ -471,7 +521,7 @@ class Game:
                     self.add_platform(random.randint(self.W // 4, (self.W // 4) * 3), 300)
 
                 # retourne à la phase 1 du jeu
-                if self.actual_time - self.beginning_phase > 30000 and self.state == 2:
+                if self.actual_time - self.beginning_phase > 20000 and self.state == 2:
                     self.state = 0
                     self.beginning_phase = self.actual_time
 
@@ -482,10 +532,18 @@ class Game:
                     else:
                         self.pattern_2()
 
+                    self.present_round += 1
+
                 ########################################################################################################
 
                 # Overlay --------------------------------- #
-                self.tb.update(self.life, round(self.actual_time / 1000, 2), self.score)
+                if self.actual_time - self.state_delay > 500:
+                    update_ = True
+                    self.state_delay = self.actual_time
+                else:
+                    update_ = False
+
+                self.tb.update(self.life, round(self.actual_time / 1000, 2), self.score, self.present_round, self.state, update_)
 
                 self.gravity_player()
 
@@ -501,6 +559,16 @@ class Game:
 
                     self.sb.add_precedent_score(self.score, self.actual_time)
 
+                # anime le personnage 
+                if self.in_the_air:
+                    if self.actual_time - self.anim_char_delay > 250:
+                        self.pl.anim_jump()
+                        self.anim_char_delay = pygame.time.get_ticks()
+                elif self.resistance == (0, -10):
+                    self.pl.reset_anim()
+
+                # appelle la fonction all_collision qui vérifie toutes les collisions de tous les sprites
+                self.all_collisions()
                 # met à jour l'écran
                 pygame.display.flip()
                 # met les fps à 40

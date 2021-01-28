@@ -2,9 +2,9 @@ import pygame
 import game
 
 
-W = 1800
-H = 1000
-screen = pygame.display.set_mode((W, H))
+W = 1920
+H = 1080
+screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("Insert name here")
 
 game = game.Game(screen, W, H)

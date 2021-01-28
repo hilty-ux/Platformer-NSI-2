@@ -13,8 +13,7 @@ class Comet(pygame.sprite.Sprite):
 
         self.screen = screen
 
-        self.image = pygame.Surface((75, 75))
-        self.image.fill((255, 255, 0))
+        self.image = pygame.image.load("ressource/Comet/haut-gauche.png")
         self.rect = self.image.get_rect()
 
         # choisi le côté d'ou viendra la comète
@@ -37,7 +36,22 @@ class Comet(pygame.sprite.Sprite):
             self.rect.x = 0
             self.rect.y = random.randint(0, self.H)
 
-        self.angle = math.atan2(player_pos_y - self.rect.y, player_pos_x - self.rect.x)
+        x = self.rect.x
+        y = self.rect.y
+
+        self.angle = math.atan2(player_pos_y - y, player_pos_x - x)
+
+        self.angle_choose = self.angle * 180
+        if self.angle_choose > 90:
+            self.image = pygame.image.load("ressource/Comet/haut-droite.png")
+        elif self.angle_choose < -90:
+            self.image = pygame.image.load("ressource/Comet/bas-droite.png")
+        elif 0 < self.angle_choose < 90:
+            self.image = pygame.image.load("ressource/Comet/haut-gauche.png")
+        else:
+            self.image = pygame.image.load("ressource/Comet/bas-gauche.png")
+        self.rect.x = x
+        self.rect.y = y
 
         self.dx = math.cos(self.angle) * 10
         self.dy = math.sin(self.angle) * 10
@@ -62,8 +76,8 @@ class SpaceShip(pygame.sprite.Sprite):
     def __init__(self, x_player, y_player, W, H, screen):
         super().__init__()
 
-        self.sprites = [pygame.image.load('ressource/SpaceShip/spaceleft.png'),
-                        pygame.image.load('ressource/SpaceShip/spaceright.png')]
+        self.sprites = [pygame.image.load('ressource/SpaceShip/vaisseau_gauche100x44.png'),
+                        pygame.image.load('ressource/SpaceShip/vaisseau_droite_100x44.png')]
         self.index_anim = 1
         self.image = self.sprites[self.index_anim]
         self.rect = self.image.get_rect()
