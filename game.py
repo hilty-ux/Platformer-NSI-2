@@ -9,6 +9,10 @@ import player
 import border_top
 import scoreboard
 import menu_buttons
+import keys
+import chock_wave
+import shield
+import abilities_menu
 
 
 class Game:
@@ -25,6 +29,8 @@ class Game:
         self.running = True
         self.menu = True
         self.jeu = False
+        self.keys_set = False
+        self.abi_menu = False
 
         self.life = 100
         self.score = 0
@@ -87,6 +93,12 @@ class Game:
         self.sb = scoreboard.ScoreBoard(self.screen, self.W, self.H)
         # crée une instance de la classe ButtonMenu qui sera la pour afficher les boutons du menu
         self.but = menu_buttons.ButtonMenu(self.screen)
+        # crée une instance de la classe KeyChoose qui sera la pour afficher la fenetre des touches
+        self.ke = keys.KeyChoose(self.screen)
+        # crée une instance de la classe Shield contenue dans le fichier shield
+        self.sh = shield.Shield(self.screen)
+        # crée une instance de la classe AbilityMenu qui servira a afficher le menu des abilités
+        self.am = abilities_menu.AbilityMenu(self.screen)
 
         # création de deux vecteurs : un qui représentera la gravité et l'autre la resistance du support.
         # lorsque une detection avec le sol sera detecté, les deux vecteurs s'annuleront.
@@ -115,10 +127,24 @@ class Game:
         self.score_pop_up_delay = pygame.time.get_ticks()
         self.state_delay = pygame.time.get_ticks()
         self.anim_char_delay = pygame.time.get_ticks()
+        self.shield_delay = pygame.time.get_ticks()
         self.jumping = False
         self.updating_platforms = False
         
         self.click = False
+
+        # crée un groupe qui contiendra l'onde de choc
+        self.chock_wave_group = pygame.sprite.Group()
+        # crée une fonction lambda qui rajoute une onde de choc au groupe
+        self.add_chock_wave = lambda x, y: self.chock_wave_group.add(chock_wave.ChockWave(self.screen, x, y))
+
+        # toutes les variables relatives aux capacités
+        self.shielded = False
+        self.chocked = False
+        self.last_power = False
+        self.shield_cooldown = pygame.time.get_ticks()
+        self.chock_cooldown = pygame.time.get_ticks()
+        self.last_ability_cooldown = pygame.time.get_ticks()
 
     def pin_up_life(self):
         police = pygame.font.Font('ressource/Police/PIXELITE.ttf', 25)
@@ -196,26 +222,30 @@ class Game:
     def all_collisions(self):
         """Detectes toutes les collisions sur tous les sprites"""
         # Collision entre les balles du joueur et les vaisseaux ---------------------------------------------- #
-        for bullet_sprite in self.bullet_group_player:
-            for space_ship in self.spaceship_group:
-                get_hits = bullet_sprite.rect.colliderect(space_ship.rect)
-                if get_hits:
-                    self.bullet_group_player.remove(bullet_sprite)
-                    space_ship.update(life_switch=True, move=6)
+        if self.state == 1:
+            for bullet_sprite in self.bullet_group_player:
+                for space_ship in self.spaceship_group:
+                    get_hits = bullet_sprite.rect.colliderect(space_ship.rect)
+                    if get_hits:
+                        self.bullet_group_player.remove(bullet_sprite)
+                        space_ship.update(life_switch=True, move=6)
 
-        # Collision entre les balles hostiles et le joueur --------------------------------------------------- #
-        for sprite in self.bullet_group_hostile:
-            get_hits = self.pl.rect.colliderect(sprite.rect)
-            if get_hits:
-                self.bullet_group_hostile.remove(sprite)
-                self.life -= 2
+            # Collision entre les balles hostiles et le joueur --------------------------------------------------- #
+            for sprite in self.bullet_group_hostile:
+                get_hits = self.pl.rect.colliderect(sprite.rect)
+                if get_hits:
+                    self.bullet_group_hostile.remove(sprite)
+                    if not self.shielded:
+                        self.life -= 2
 
         # Collision entre les comètes et le joueur ----------------------------------------------------------- #
-        for sprite in self.comet_group:
-            get_hits = self.pl.rect.colliderect(sprite.rect)
-            if get_hits:
-                self.life -= 1
-                self.comet_group.remove(sprite)
+        if self.state == 0 or self.state == 2:
+            for sprite in self.comet_group:
+                get_hits = self.pl.rect.colliderect(sprite.rect)
+                if get_hits:
+                    if not self.shielded:
+                        self.life -= 1
+                    self.comet_group.remove(sprite)
 
         # Collision avec les plateformes --------------------------------------------------------------------- #
         if self.state != 2:
@@ -225,22 +255,34 @@ class Game:
                     self.resistance = (0, -10)
                     self.jump_number = 0
                     self.in_the_air = False
+                    # s'il détecte une collision, il casse la boucle pour éviter de vérifier une autre plateformes
+                    # et que cela change les variables comme si le joueur ne touchait pas le sol alors que si
+                    # mais simplement sur une autre plateforme (une plateforme avec un index inférieur dans la
+                    # liste des plateformes)
                     break
                 else:
                     self.resistance = (0, 0)
                     self.in_the_air = True
 
         # Collision entre les balles et les comètes ---------------------------------------------------------- #
-        for sprite in self.bullet_group_player:
-            for sprite2 in self.comet_group:
-                get_hits = sprite.rect.colliderect(sprite2.rect)
-                if get_hits:
-                    self.score_pop_up_list[sprite2] = (sprite2.rect.centerx,
-                                                       sprite2.rect.centery,
-                                                       pygame.time.get_ticks())
-                    self.score += 10 * self.present_round
-                    self.bullet_group_player.remove(sprite)
-                    self.comet_group.remove(sprite2)
+        if self.state == 0 or self.state == 2:
+            for sprite in self.bullet_group_player:
+                for sprite2 in self.comet_group:
+                    get_hits = sprite.rect.colliderect(sprite2.rect)
+                    if get_hits:
+                        self.score_pop_up_list[sprite2] = (sprite2.rect.centerx,
+                                                           sprite2.rect.centery,
+                                                           pygame.time.get_ticks())
+                        self.score += 10 * self.present_round
+                        self.bullet_group_player.remove(sprite)
+                        self.comet_group.remove(sprite2)
+
+        try:
+            pygame.sprite.groupcollide(self.chock_wave_group, self.comet_group, False, True)
+            pygame.sprite.groupcollide(self.chock_wave_group, self.spaceship_group, False, True)
+            pygame.sprite.groupcollide(self.chock_wave_group, self.bullet_group_hostile, False, True)
+        except Exception as e:
+            print(e)
 
     def pop_up_list_update(self):
 
@@ -309,6 +351,8 @@ class Game:
                     # si le joueur ferme la fenetre, casse la boucle de lancement et
                     # ferme la boucle actuelle, la boucle menu
                     if event.type == pygame.QUIT:
+                        # met a jour les touches dans le fichier json
+                        self.ke.update_keys()
                         self.running = False
                         self.menu = False
 
@@ -352,17 +396,65 @@ class Game:
                                 self.pattern_1()
 
                         elif self.but.white_button_exit_rect.collidepoint(event.pos):
-
+                            # met a jour les touches dans le fichier json
+                            self.ke.update_keys()
                             print("Fermeture du client.")
                             self.menu = False
                             self.running = False
+
+                        elif self.but.white_button_keys_rect.collidepoint(event.pos):
+                            self.menu = False
+                            self.keys_set = True
+
+                    if event.type == pygame.KEYDOWN:
+                        self.abi_menu = True
+                        self.menu = False
 
                 self.sb.score_board()
                 self.but.print_out()
 
                 pygame.display.flip()
 
+            while self.keys_set:
+
+                # ici pas besoin de mettre une boucle d'évèneemnts car la fonction suivante les gere deja
+                self.ke.print_out()
+
+                if self.ke.print_out() == "quit":
+                    # met a jour les touches dans le fichier json
+                    self.ke.update_keys()
+                    self.keys_set = False
+                    self.running = False
+                elif self.ke.print_out() == "return to menu":
+                    self.keys_set = False
+                    self.menu = True
+
+                pygame.display.flip()
+
+            while self.abi_menu:
+
+                self.am.update_screen()
+
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.running = False
+                        self.abi_menu = False
+
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        if self.am.button_exit_rect.collidepoint(event.pos):
+                            self.menu = True
+                        self.abi_menu = False
+
+                pygame.display.flip()
+
             while self.jeu:
+
+                # index 0 = jump
+                # index 1 = left
+                # index 2 = right
+                # index 3 = shoot
+                # index 4 = exit
+                key_bind = self.ke.return_keys()
 
                 # récupère tous les évènements
                 for event in pygame.event.get():
@@ -370,27 +462,28 @@ class Game:
                     # si le joueur ferme la fenetre, casse la boucle de lancement et
                     # ferme la boucle actuelle, la boucle jeu
                     if event.type == pygame.QUIT:
+                        # met a jour les touches dans le fichier json
+                        self.ke.update_keys()
                         self.running = False
                         self.jeu = False
 
                     # si l'évènement est de type bouton de souris pressé:
-                    if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.type == key_bind[3]:
                         self.add_blue_bullet(self.pl.rect.x + (self.pl.playerW // 2),
                                              self.pl.rect.y + (self.pl.playerH // 2),
                                              event.pos[0] + 13, event.pos[1] + 13)
-
                     # si l'événement est de type touche préssée
                     if event.type == pygame.KEYDOWN:
 
                         # ajoute à la liste des touches préssées la touche actuellement préssée
                         self.pressed[event.key] = True
 
-                        if event.key == pygame.K_SPACE and self.jump_number < 2:
+                        if event.key == key_bind[0] and self.jump_number < 2:
                             self.pl.jump()
                             self.jump_number += 1
 
                         # si la touche préssée est la touche ESCAPE
-                        if event.key == pygame.K_ESCAPE:
+                        if event.key == key_bind[4]:
                             # enregistre toutes les valeurs liées à la parties qui vient d'être jouée
                             if self.score > self.sb.high_score:
                                 self.sb.add_high_score(self.score, self.actual_time)
@@ -402,21 +495,54 @@ class Game:
                             self.menu = True
                             self.jeu = False
 
+                        if event.key == pygame.K_e and not self.chocked:
+                            self.chocked = True
+                            self.add_chock_wave(self.pl.rect.x, self.pl.rect.y)
+                            self.chock_cooldown = self.actual_time
+
+                        if event.key == pygame.K_a and not self.shielded:
+                            self.shielded = True
+                            self.shield_delay = self.actual_time
+                            self.shield_cooldown = self.actual_time
+
                     if event.type == pygame.KEYUP:
                         self.pressed[event.key] = False
 
                 # si le joueur appuies sur la flèche de gauche, utilise la fonction du joueur 'bouger à gauche'
-                if self.pressed.get(pygame.K_q):
+                if self.pressed.get(key_bind[1]):
                     self.pl.move_left()
 
                 # si le joueur appuies sur la flèche de droite, utilise la fonction du joueur 'bouger à droite'
-                if self.pressed.get(pygame.K_d):
+                if self.pressed.get(key_bind[2]):
                     self.pl.move_right()
 
                 # colore l'écran dans la couleur définit plus haut
                 self.screen.blit(self.background_game, (0, 0))
                 # met à jour le joueur
                 self.pl.update()
+
+                # Cooldowns ------------------------------------------ #
+
+                if self.chocked:
+                    if self.actual_time - self.chock_cooldown > 30000:
+                        self.chocked = False
+                    chock_cd = round(30-((self.actual_time - self.chock_cooldown)/1000))
+                else:
+                    chock_cd = "RDY"
+
+                if self.shielded:
+                    if self.actual_time - self.shield_cooldown > 17000:
+                        self.shielded = False
+                    shield_cd = round(17-((self.actual_time - self.shield_cooldown)/1000))
+                else:
+                    shield_cd = "RDY"
+
+                if self.last_power:
+                    if self.actual_time - self.last_ability_cooldown > 10000:
+                        self.last_power = False
+                    last_power_cd = (self.actual_time - self.last_ability_cooldown)/1000
+                else:
+                    last_power_cd = "RDY"
 
                 # Sprites -------------------------------------------- #
 
@@ -429,6 +555,22 @@ class Game:
                 self.bullet_group_hostile.draw(self.screen)
                 # met a jour tous les sprites de ce groupe
                 self.bullet_group_hostile.update()
+
+                # dessine l'onde de choc (si elle existe)
+                try:
+                    self.chock_wave_group.draw(self.screen)
+                except Exception as e:
+                    print(e)
+                # met a jour l'onde de choc
+                try:
+                    self.chock_wave_group.update()
+                except Exception as e:
+                    print(e)
+
+                # manage the shield
+                if self.shielded:
+                    if self.actual_time - self.shield_delay < 5000:
+                        self.sh.update(self.pl.rect.centerx, self.pl.rect.centery)
 
                 # dessine les comètes
                 self.comet_group.draw(self.screen)
@@ -455,7 +597,7 @@ class Game:
                     self.pl.rect.x, self.pl.rect.y = self.W // 2, self.H // 2
 
                 if self.state == 2:
-                    if self.actual_time - self.platform_spawning_delay > 100:
+                    if self.actual_time - self.platform_spawning_delay > 1000:
                         choice = random.randint(1, 5)
                         if choice >= 3:
                             self.add_platform_random_1()
@@ -465,14 +607,14 @@ class Game:
                         elif choice == 2:
                             self.add_platform_random_2()
 
-                        self.platform_spawning_delay = pygame.time.get_ticks()
+                        self.platform_spawning_delay = self.actual_time
 
                     if not self.jumping:
                         if pygame.sprite.spritecollideany(self.pl, self.platform_group):
-                            self.begin_updating_time = pygame.time.get_ticks()
-                            self.begin_jump_time = pygame.time.get_ticks()
+                            self.begin_updating_time = self.actual_time
+                            self.begin_jump_time = self.actual_time
 
-                    if self.actual_time - self.begin_updating_time < 100:
+                    if self.actual_time - self.begin_updating_time < 1000:
                         self.updating_platforms = True
                     else:
                         self.updating_platforms = False
@@ -480,7 +622,7 @@ class Game:
                     if self.updating_platforms:
                         self.platform_group.update(True, False)
 
-                    if self.actual_time - self.begin_jump_time < 250:
+                    if self.actual_time - self.begin_jump_time < 1500:
                         self.jumping = True
                     else:
                         self.jumping = False
@@ -543,7 +685,8 @@ class Game:
                 else:
                     update_ = False
 
-                self.tb.update(self.life, round(self.actual_time / 1000, 2), self.score, self.present_round, self.state, update_)
+                self.tb.update(self.life, round(self.actual_time / 1000, 2), self.score,
+                               self.present_round, self.state, update_, shield_cd, chock_cd, last_power_cd)
 
                 self.gravity_player()
 

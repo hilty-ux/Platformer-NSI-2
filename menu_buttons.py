@@ -33,6 +33,8 @@ class ButtonMenu:
         self.black_button_exit_rect.x, self.black_button_exit_rect.y = 1625, 925
         self.white_button_exit_rect.x, self.white_button_exit_rect.y = 1625, 925
         
+        pygame.draw.rect(self.screen, (0, 255, 0), [160, 530, 572, 20])
+        pygame.display.flip()
 
     def print_out(self):
 

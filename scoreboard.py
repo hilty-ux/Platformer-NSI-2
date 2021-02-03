@@ -20,6 +20,9 @@ class ScoreBoard:
         self.W = W
         self.H = H
 
+        pygame.draw.rect(self.screen, (0, 255, 0), [160, 530, 458, 20])
+        pygame.display.flip()
+
     def update(self):
 
         with open('datas.json') as d:

@@ -34,6 +34,10 @@ class Player(pygame.sprite.Sprite):
 
         self.index_animation_jump = 0
 
+        # crée une barre de loading
+        pygame.draw.rect(self.screen, (0, 255, 0), [160, 530, 116, 20])
+        pygame.display.update()
+
     def update(self):
         self.screen.blit(self.image, self.rect)
         

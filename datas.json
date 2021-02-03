@@ -3,22 +3,29 @@
     "high-score": 14540,
     "high-score-time": 317430,
     "precedent-game-score": [
+      40,
+      0,
+      210,
       410,
       200,
       250,
-      110,
-      0,
-      0,
-      0
+      110
     ],
     "precedent-game-time": [
+      13182,
+      2492,
+      41925,
       83551,
       23019,
       103146,
-      9422,
-      3986,
-      5708,
-      2243
+      9422
     ]
+  },
+  "keys": {
+    "jump": "Space",
+    "right": "D",
+    "left": "Q",
+    "shoot": "Mouse",
+    "exit": "Esc"
   }
 }
